@@ -13,7 +13,8 @@ class OwnPromise {
   static resolve(value) {
     this.state = 'FULFILLED';
     this.value = value;
-    return value && ({}).hasOwnProperty.call(value, 'then') ? value
+    return value && ({}).hasOwnProperty.call(value, 'then')
+      ? value
       : new OwnPromise(resolve => {
         resolve(value);
       });
