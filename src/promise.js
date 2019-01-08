@@ -9,6 +9,15 @@ class OwnPromise {
     this.queue = [];
     executor(OwnPromise.resolve, OwnPromise.reject);
   }
+
+  static resolve(value) {
+    this.state = 'FULFILLED';
+    this.value = value;
+    return value && ({}).hasOwnProperty.call(value, 'then') ? value
+      : new OwnPromise(resolve => {
+        resolve(value);
+      });
+  }
 }
 
 module.exports = OwnPromise;
