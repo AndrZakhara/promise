@@ -25,6 +25,31 @@ class OwnPromise {
     this.value = reason;
     return new OwnPromise((_, reject) => reject(reason));
   }
+
+  static all(promises) {
+    if ((!Array.isArray(promises)) || !(promises instanceof OwnPromise)) {
+      throw new TypeError('Promise.all arguments must be an array.');
+    } else {
+      const results = [];
+
+      return new OwnPromise((resolve, reject) => {
+        promises.forEach((promise, i) => {
+          if (!(promise instanceof OwnPromise)) {
+            throw new TypeError('variable must be a Promise instance.');
+          }
+          promise.then(res => {
+            results[i] = res;
+
+            if (results.length === promises.length) {
+              resolve(results);
+            }
+          }, err => {
+            reject(err);
+          });
+        });
+      });
+    }
+  }
 }
 
 module.exports = OwnPromise;
