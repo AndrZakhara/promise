@@ -19,6 +19,12 @@ class OwnPromise {
         resolve(value);
       });
   }
+
+  static reject(reason) {
+    this.state = 'REJECTED';
+    this.value = reason;
+    return new OwnPromise((_, reject) => reject(reason));
+  }
 }
 
 module.exports = OwnPromise;
