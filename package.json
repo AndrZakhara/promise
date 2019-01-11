@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "description": "",
   "scripts": {
-    "test": "promises-es6-tests lib/adapter",
+    "test": "node lib/cli",
+    "info": "node . 30 --f 5",
     "lint": "eslint --ext .js src/"
   },
   "author": "",
