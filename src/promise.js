@@ -1,29 +1,34 @@
+const RESOLVED = 'RESOLVED';
+const PENDING = 'PENDING';
+const REJECTED = 'REJECTED';
+
 class OwnPromise {
   constructor(executor) {
     if (typeof executor !== 'function') {
       throw new TypeError('Executor is not a function');
     }
-
-    this.state = 'PENDING';
+    this.state = PENDING;
+    this.callbacks = [];
     this.value = null;
-    this.queue = [];
-    executor(OwnPromise.resolve, OwnPromise.reject);
-  }
 
-  static resolve(value) {
-    this.state = 'FULFILLED';
-    this.value = value;
-    return value && ({}).hasOwnProperty.call(value, 'then')
-      ? value
-      : new OwnPromise(resolve => {
-        resolve(value);
+    const resolve = data => {
+      if (this.state !== PENDING) {
+        return
+      }
+      this.state = RESOLVED;
+      this.value = data;
+      this.callbacks.forEach(({ res, rej }) => {
+        this.value = res(this.value);
       });
-  }
+    };
 
-  static reject(reason) {
-    this.state = 'REJECTED';
-    this.value = reason;
-    return new OwnPromise((_, reject) => reject(reason));
+    const reject = err => {
+      this.state = REJECTED;
+      this.value = err;
+      return new OwnPromise((resolve, reject) => reject(err));
+    };
+
+    executor(resolve, reject);
   }
 
   static all(promises) {
