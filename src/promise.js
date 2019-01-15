@@ -13,7 +13,7 @@ class OwnPromise {
 
     const resolve = data => {
       if (this.state !== PENDING) {
-        return
+        return;
       }
       this.state = RESOLVED;
       this.value = data;
@@ -54,6 +54,14 @@ class OwnPromise {
         });
       });
     }
+  }
+
+  static resolve(data) {
+    return new OwnPromise(resolve => resolve(data));
+  }
+
+  static reject(data) {
+    return new OwnPromise((resolve, reject) => reject(data));
   }
 }
 
