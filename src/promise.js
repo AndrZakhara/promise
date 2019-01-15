@@ -31,6 +31,19 @@ class OwnPromise {
     executor(resolve, reject);
   }
 
+  static race(iterable) {
+    const isIterable = object => object !== null && typeof object[Symbol.iterator] === 'function';
+
+    if (!isIterable(iterable)) {
+      throw new TypeError('ERROR');
+    }
+    return new OwnPromise((resolve, reject) => {
+      for (let i = 0; i < iterable.length; i++) {
+        iterable[i].then(resolve, reject);
+      }
+    });
+  }
+
   static all(promises) {
     if ((!Array.isArray(promises)) || !(promises instanceof OwnPromise)) {
       throw new TypeError('Promise.all arguments must be an array.');
