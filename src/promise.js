@@ -1,132 +1,131 @@
+const RESOLVED = 'RESOLVED';
+const PENDING = 'PENDING';
+const REJECTED = 'REJECTED';
+
 class OwnPromise {
   constructor(executor) {
     if (typeof executor !== 'function') {
-      throw new TypeError('Executor must be a function');
+      throw new TypeError('Executor is not a function');
     }
+    this.state = PENDING;
+    this.callbacks = [];
+    this.value = null;
 
-    this.state = 'PENDING';
-    this.chained = [];
-
-    const resolve = res => {
-      if (this.state !== 'PENDING') {
+    const resolve = data => {
+      if (this.state !== PENDING) {
         return;
       }
-
-      this.state = 'FULFILLED';
-      this.internalValue = res;
-
-      for (const { onFulfilled } of this.chained) {
-        onFulfilled(res);
-      }
+      this.state = RESOLVED;
+      this.value = data;
+      this.callbacks.forEach(({ res, rej }) => {
+        this.value = res(this.value);
+      });
     };
 
     const reject = err => {
-      if (this.state !== 'PENDING') {
-        return;
-      }
-      this.state = 'REJECTED';
-      this.internalValue = err;
-
-      for (const { onRejected } of this.chained) {
-        onRejected(err);
-      }
+      this.state = REJECTED;
+      this.value = err;
+      return new OwnPromise((resolve, reject) => reject(err));
     };
 
-    try {
-      executor(resolve, reject);
-    } catch (err) {
-      reject(err);
+    executor(resolve, reject);
+  }
+
+  handleCb(cb) {
+    if (this.state === RESOLVED) {
+      cb.onResolved && setTimeout(() => cb.onResolved(this.value), 0);
+    } else if (this.state === REJECTED) {
+      cb.onRejected && setTimeout(() => cb.onRejected(this.value), 0);
+    } else {
+      this.callbacks.push(cb);
     }
   }
 
-  static all(iterable) {
-    if (typeof this !== 'function') {
-      throw new TypeError('this is not a constructor');
-    }
-
+  then(onResolved, onRejected) {
     return new OwnPromise((resolve, reject) => {
-      const isEmptyIterable = iterable => {
-        for (let key of iterable) {
-          return false;
+      const cb = {
+        onResolved: data => {
+          let nextValue = data;
+
+          if (onResolved) {
+            try {
+              nextValue = onResolved(data);
+
+              if (nextValue && nextValue instanceof OwnPromise) {
+                nextValue.then();
+                return nextValue.then(resolve, reject);
+              }
+            } catch (err) {
+              return reject(err);
+            }
+          }
+          resolve(nextValue);
+        },
+        onRejected: data => {
+          let nextValue = data;
+
+          if (onRejected) {
+            try {
+              nextValue = onRejected(data);
+
+              if (nextValue && nextValue instanceof OwnPromise) {
+                return nextValue.then(resolve, reject);
+              }
+            } catch (err) {
+              return reject(err);
+            }
+          }
+          reject(nextValue);
         }
-        return true;
       };
+      this.handleCb(cb);
+    });
+  }
 
-      if (isEmptyIterable(iterable)) {
-        return resolve([]);
-      }
+  static race(iterable) {
+    const isIterable = object => object !== null && typeof object[Symbol.iterator] === 'function';
 
-      const values = new Array(iterable.length);
-      let counter = 0;
-      const tryResolve = i => value => {
-        values[i] = value;
-        counter += 1;
-
-        if (counter === iterable.length) {
-          resolve(values);
-        }
-      };
-
+    if (!isIterable(iterable)) {
+      throw new TypeError('ERROR');
+    }
+    return new OwnPromise((resolve, reject) => {
       for (let i = 0; i < iterable.length; i++) {
-        const promise = iterable[i];
-        promise.then(tryResolve(i), reject);
+        iterable[i].then(resolve, reject);
       }
     });
   }
 
-  then(onFulfilled, onRejected) {
-    return new OwnPromise((resolve, reject) => {
-      const _onFulfilled = res => {
-        try {
-          resolve(onFulfilled(res));
-        } catch (err) {
-          reject(err);
-        }
-      };
+  static all(promises) {
+    if ((!Array.isArray(promises)) || !(promises instanceof OwnPromise)) {
+      throw new TypeError('Promise.all arguments must be an array.');
+    } else {
+      const results = [];
 
-      const _onRejected = err => {
-        try {
-          reject(onRejected(err));
-        } catch (_err) {
-          reject(_err);
-        }
-      };
+      return new OwnPromise((resolve, reject) => {
+        promises.forEach((promise, i) => {
+          if (!(promise instanceof OwnPromise)) {
+            throw new TypeError('variable must be a Promise instance.');
+          }
+          promise.then(res => {
+            results[i] = res;
 
-      if (this.state === 'FULFILLED') {
-        setTimeout(_onFulfilled, 0, this.internalValue);
-      } else if (this.state === 'REJECTED') {
-        setTimeout(_onRejected, 0, this.internalValue);
-      } else {
-        this.chained.push({
-          onFulfilled: _onFulfilled,
-          onRejected: _onRejected
+            if (results.length === promises.length) {
+              resolve(results);
+            }
+          }, err => {
+            reject(err);
+          });
         });
-      }
-    });
+      });
+    }
   }
 
-  static resolve(val) {
-    if (typeof this !== 'function') {
-      throw new TypeError('this is not a constructor');
-    }
-
-    if (val instanceof OwnPromise) {
-      return val;
-    }
-
-    return new OwnPromise(resolve => resolve(val));
+  static resolve(data) {
+    return new OwnPromise(resolve => resolve(data));
   }
 
-  static reject(val) {
-    if (typeof this !== 'function') {
-      throw new TypeError('this is not a constructor');
-    }
-
-    return new OwnPromise((resolve, reject) => reject(val));
-  }
-
-  catch(onRejected) {
-    return this.then(undefined, onRejected);
+  static reject(data) {
+    return new OwnPromise((resolve, reject) => reject(data));
   }
 }
 
