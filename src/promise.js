@@ -41,7 +41,6 @@ class OwnPromise {
         this.value = value;
 
         while (this.callbacks.length > 0) {
-
           const cb = this.callbacks.pop();
 
           if (this.state === RESOLVED) {
