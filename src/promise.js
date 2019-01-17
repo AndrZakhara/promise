@@ -11,55 +11,55 @@ class OwnPromise {
     this.state = PENDING;
     this.value = null;
     this.callbacks = [];
-    this.resolve = this.resolve.bind(this);
-    this.reject = this.reject.bind(this);
-    executer(this.resolve, this.reject);
-  }
 
-  resolve(value) {
-    if (this.state === PENDING) {
-      this.state = RESOLVED;
-      this.value = value;
+    const resolve = value => {
+      if (this.state === PENDING) {
+        this.state = RESOLVED;
+        this.value = value;
 
-      while (this.callbacks.length > 0) {
-        const cb = this.callbacks.pop();
+        while (this.callbacks.length > 0) {
+          const cb = this.callbacks.pop();
 
-        if (this.state === RESOLVED) {
-          if (cb.onResolved) {
-            setTimeout(() => cb.onResolved(this.value), 0);
+          if (this.state === RESOLVED) {
+            if (cb.onResolved) {
+              setTimeout(() => cb.onResolved(this.value), 0);
+            }
+          } else if (this.state === REJECTED) {
+            if (cb.onRejected) {
+              setTimeout(() => cb.onRejected(this.value), 0);
+            }
+          } else {
+            this.callbacks.push(cb);
           }
-        } else if (this.state === REJECTED) {
-          if (cb.onRejected) {
-            setTimeout(() => cb.onRejected(this.value), 0);
-          }
-        } else {
-          this.callbacks.push(cb);
         }
       }
-    }
-  }
+    };
 
-  reject(value) {
-    if (this.state === PENDING) {
-      this.state = REJECTED;
-      this.value = value;
+    const reject = value => {
+      if (this.state === PENDING) {
+        this.state = REJECTED;
+        this.value = value;
 
-      while (this.callbacks.length > 0) {
-        const cb = this.callbacks.pop();
+        while (this.callbacks.length > 0) {
 
-        if (this.state === RESOLVED) {
-          if (cb.onResolved) {
-            setTimeout(() => cb.onResolved(this.value), 0);
+          const cb = this.callbacks.pop();
+
+          if (this.state === RESOLVED) {
+            if (cb.onResolved) {
+              setTimeout(() => cb.onResolved(this.value), 0);
+            }
+          } else if (this.state === REJECTED) {
+            if (cb.onRejected) {
+              setTimeout(() => cb.onRejected(this.value), 0);
+            }
+          } else {
+            this.callbacks.push(cb);
           }
-        } else if (this.state === REJECTED) {
-          if (cb.onRejected) {
-            setTimeout(() => cb.onRejected(this.value), 0);
-          }
-        } else {
-          this.callbacks.push(cb);
         }
       }
-    }
+    };
+
+    executer(resolve, reject);
   }
 
   then(onResolved, onRejected) {
@@ -111,10 +111,6 @@ class OwnPromise {
         this.callbacks.push(cb);
       }
     });
-  }
-
-  done(onResolved) {
-    return this.then(onResolved);
   }
 
   catch(onRejected) {
