@@ -153,8 +153,8 @@ class OwnPromise {
 
       promises.length === 0 && resolve([]);
 
-      const tryResolve = i => value => {
-        values[i] = value;
+      const tryResolve = index => value => {
+        values[index] = value;
         counter += 1;
 
         if (counter === promises.length) {
