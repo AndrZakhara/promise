@@ -143,13 +143,15 @@ class OwnPromise {
   static all(promises) {
     const isIterable = object => object !== null && typeof object[Symbol.iterator] === 'function';
 
-    return new OwnPromise((resolve, reject) => {
-      if (!isIterable(promises)) {
-        throw new TypeError('ERROR');
-      }
+    if (!isIterable(promises)) {
+      return this.reject(new TypeError('ERROR'));
+    }
 
+    return new this((resolve, reject) => {
       const values = new Array(promises.length);
       let counter = 0;
+
+      promises.length === 0 && resolve([]);
 
       const tryResolve = i => value => {
         values[i] = value;
